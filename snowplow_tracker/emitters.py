@@ -171,7 +171,7 @@ class Emitter(object):
         else:
             return self.bytes_queued >= self.byte_limit or len(self.buffer) >= self.buffer_size
 
-    @app.task(name="Flush")
+    @app.task(bind=True, name="Flush")
     def flush(self):
         """
             Sends all events in the buffer to the collector.
