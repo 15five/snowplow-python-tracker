@@ -31,7 +31,6 @@ except ImportError:
     from queue import Queue
 
 from celery import Celery
-from celery.contrib.methods import task
 import redis
 import requests
 from contracts import contract, new_contract
@@ -172,7 +171,7 @@ class Emitter(object):
         else:
             return self.bytes_queued >= self.byte_limit or len(self.buffer) >= self.buffer_size
 
-    @task(name="Flush")
+    @app.task(name="Flush")
     def flush(self):
         """
             Sends all events in the buffer to the collector.
