@@ -30,10 +30,12 @@ except ImportError:
     # Python 3
     from queue import Queue
 
-from celery import Celery
+from celery import shared_task
 import redis
 import requests
 from contracts import contract, new_contract
+
+from snowplow_tracker.utils import http_get, http_post, is_good_status_code
 
 from snowplow_tracker.self_describing_json import SelfDescribingJson
 
@@ -50,16 +52,6 @@ new_contract("method", lambda x: x == "get" or x == "post")
 new_contract("function", lambda x: hasattr(x, "__call__"))
 
 new_contract("redis", lambda x: isinstance(x, (redis.Redis, redis.StrictRedis)))
-
-try:
-    # Check whether a custom Celery configuration module named "snowplow_celery_config" exists
-    import snowplow_celery_config
-    app = Celery()
-    app.config_from_object(snowplow_celery_config)
-
-except ImportError:
-    # Otherwise configure Celery with default settings
-    app = Celery("Snowplow", broker="redis://guest@localhost//")
 
 
 class Emitter(object):
@@ -171,7 +163,6 @@ class Emitter(object):
         else:
             return self.bytes_queued >= self.byte_limit or len(self.buffer) >= self.buffer_size
 
-    @app.task(name="Flush")
     def flush(self):
         """
             Sends all events in the buffer to the collector.
@@ -231,44 +222,7 @@ class Emitter(object):
             :param evts: Array of events to be sent
             :type  evts: list(dict(string:*))
         """
-        if len(evts) > 0:
-            logger.info("Attempting to send %s requests" % len(evts))
-            Emitter.attach_sent_timestamp(evts)
-            if self.method == 'post':
-                data = SelfDescribingJson(PAYLOAD_DATA_SCHEMA, evts).to_string()
-                post_succeeded = False
-                try:
-                    status_code = self.http_post(data).status_code
-                    post_succeeded = self.is_good_status_code(status_code)
-                except requests.RequestException as e:
-                    logger.warn(e)
-                if post_succeeded:
-                    if self.on_success is not None:
-                        self.on_success(len(evts))
-                elif self.on_failure is not None:
-                    self.on_failure(0, evts)
-
-            elif self.method == 'get':
-                success_count = 0
-                unsent_requests = []
-                for evt in evts:
-                    get_succeeded = False
-                    try:
-                        status_code = self.http_get(evt).status_code
-                        get_succeeded = self.is_good_status_code(status_code)
-                    except requests.RequestException as e:
-                        logger.warn(e)
-                    if get_succeeded:
-                        success_count += 1
-                    else:
-                        unsent_requests.append(evt)
-                if len(unsent_requests) == 0:
-                    if self.on_success is not None:
-                        self.on_success(success_count)
-                elif self.on_failure is not None:
-                    self.on_failure(success_count, unsent_requests)
-        else:
-            logger.info("Skipping flush since buffer is empty")
+        send_events(self.endpoint, evts, self.method)
 
     @contract
     def set_flush_timer(self, timeout, flush_now=False):
@@ -392,14 +346,17 @@ class CeleryEmitter(Emitter):
         Works like the base Emitter class,
         but on_success and on_failure callbacks cannot be set.
     """
+    celery_app = None
+
     def __init__(self, endpoint, protocol="http", port=None, method="get", buffer_size=None, byte_limit=None):
         super(CeleryEmitter, self).__init__(endpoint, protocol, port, method, buffer_size, None, None, byte_limit)
 
-    def flush(self):
+
+    def send_events(self, evts):
         """
             Schedules a flush task
         """
-        super(CeleryEmitter, self).flush.delay()
+        send_events.delay(self.endpoint, evts, self.method)
         logger.info("Scheduled a Celery task to flush the event queue")
 
 
@@ -435,3 +392,39 @@ class RedisEmitter(object):
 
     def sync_flush(self):
         self.flush()
+
+
+@shared_task
+def send_events(endpoint, evts, method):
+    if len(evts) > 0:
+        logger.info("Attempting to send %s requests" % len(evts))
+        Emitter.attach_sent_timestamp(evts)
+        if method == 'post':
+            data = SelfDescribingJson(PAYLOAD_DATA_SCHEMA, evts).to_string()
+            post_succeeded = False
+            try:
+                status_code = http_post(endpoint, data).status_code
+                post_succeeded = is_good_status_code(status_code)
+            except requests.RequestException as e:
+                logger.warn(e)
+            if post_succeeded:
+                logger.info("Success")
+            else:
+                logger.info("Fail")
+
+        elif method == 'get':
+            success_count = 0
+            unsent_requests = []
+            for evt in evts:
+                get_succeeded = False
+                try:
+                    status_code = http_get(endpoint, evt).status_code
+                    get_succeeded = is_good_status_code(status_code)
+                except requests.RequestException as e:
+                    logger.warn(e)
+                if get_succeeded:
+                    success_count += 1
+                else:
+                    unsent_requests.append(evt)
+    else:
+        logger.info("Skipping flush since buffer is empty")
