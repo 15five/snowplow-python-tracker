@@ -50,8 +50,8 @@ authors_email_list = [
 authors_email_str = ', '.join(authors_email_list)
 
 setup(
-    name='snowplow-tracker',
-    version=__version__,
+    name='15five-snowplow-tracker',
+    version='0.8.155',
     author=authors_str,
     author_email=authors_email_str,
     packages=['snowplow_tracker', 'snowplow_tracker.test'],
