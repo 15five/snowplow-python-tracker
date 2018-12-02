@@ -185,7 +185,6 @@ class Tracker:
         pb.add_dict(self.standard_nv_pairs)
 
         pb.add_dict(self.subject.standard_nv_pairs)
-
         return self.track(pb)
 
     @contract
@@ -208,7 +207,6 @@ class Tracker:
         pb.add("url", page_url)
         pb.add("page", page_title)
         pb.add("refr", referrer)
-
         return self.complete_payload(pb, context, tstamp)
 
     @contract

@@ -163,3 +163,90 @@ class Subject(object):
         """
         self.standard_nv_pairs["tnuid"] = nuid
         return self
+
+    def set_custom(self, field, value):
+        """
+            Set custom field
+
+            :param field:           Field name
+            :param value:           Value for a field
+        """
+        self.standard_nv_pairs[field] = value
+        return self
+
+    def set_custom_by_name(self, field, value):
+        """
+            Set custom field by getting field name from SNOWPLOW_REVERTED_TRANSFORM_MAP
+
+            :param field:           Field name
+            :param value:           Value for a field
+        """
+        self.standard_nv_pairs[SNOWPLOW_REVERTED_TRANSFORM_MAP.get(field, field)] = value
+        return self
+
+
+SNOWPLOW_REVERTED_TRANSFORM_MAP = {
+    "event": "e",
+    "user_ipaddress": "ip",
+    "app_id": "aid",
+    "platform": "p",
+    "txn_id": "tid",
+    "user_id": "uid",
+    "domain_userid": "duid",
+    "network_userid": "nuid",
+    "useragent": "ua",
+    "user_fingerprint": "fp",
+    "domain_sessionidx": "vid",
+    "domain_sessionid": "sid",
+    "dvce_created_tstamp": "dtm",
+    "true_tstamp": "ttm",
+    "dvce_sent_tstamp": "stm",
+    "name_tracker": "tna",
+    "v_tracker": "tv",
+    "v_collector": "cv",
+    "br_lang": "lang",
+    "br_features_pdf": "f_pdf",
+    "br_features_flash": "f_fla",
+    "br_features_java": "f_java",
+    "br_features_director": "f_dir",
+    "br_features_quicktime": "f_qt",
+    "br_features_realplayer": "f_realp",
+    "br_features_windowsmedia": "f_wma",
+    "br_features_gears": "f_gears",
+    "br_features_silverlight": "f_ag",
+    "br_cookies": "cookie",
+    "br_colordepth": "cd",
+    "os_timezone": "tz",
+    "page_referrer": "refr",
+    "page_url": "url",
+    "page_title": "page",
+    "doc_charset": "cs",
+    "event_id": "eid",
+    "contexts": "cx",
+    "se_category": "se_ca",
+    "se_action": "se_ac",
+    "se_label": "se_la",
+    "se_property": "se_pr",
+    "se_value": "se_va",
+    "unstruct_event": "ue_pr",
+    "tr_orderid": "tr_id",
+    "tr_affiliation": "tr_af",
+    "tr_total": "tr_tt",
+    "tr_tax": "tr_tx",
+    "tr_shipping": "tr_sh",
+    "tr_city": "tr_ci",
+    "tr_state": "tr_st",
+    "tr_country": "tr_co",
+    "ti_orderid": "ti_id",
+    "ti_sku": "ti_sk",
+    "ti_name": "ti_nm",
+    "ti_category": "ti_ca",
+    "ti_price": "ti_pr",
+    "ti_quantity": "ti_qu",
+    "pp_xoffset_min": "pp_mix",
+    "pp_xoffset_max": "pp_max",
+    "pp_yoffset_min": "pp_miy",
+    "pp_yoffset_max": "pp_may",
+    "tr_currency": "tr_cu",
+    "ti_currency": "ti_cu",
+}
