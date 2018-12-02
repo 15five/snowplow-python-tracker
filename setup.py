@@ -17,6 +17,10 @@
     Authors: Anuj More, Alex Dean, Fred Blundun
     Copyright: Copyright (c) 2013-2014 Snowplow Analytics Ltd
     License: Apache License Version 2.0
+
+
+    !!!MODIFIED BY 15FIVE!!! 
+    Modifiers: Andrii Pleskach, Paul Logston
 """
 
 

@@ -1,3 +1,8 @@
+"""
+    !!!MODIFIED BY 15FIVE!!! 
+    Modifiers: Andrii Pleskach, Paul Logston
+
+"""
 import logging
 import requests
 
